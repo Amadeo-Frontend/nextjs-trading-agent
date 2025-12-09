@@ -10,6 +10,7 @@ export default withAuth({
 // Regras do middleware
 export const config = {
   matcher: [
+    "/",
     "/agente/:path*",
     "/backtest/:path*",
     "/perfil/:path*",
