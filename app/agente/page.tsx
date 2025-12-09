@@ -1,13 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
+import { Bot, User } from "lucide-react"
+
 import { chatExpert } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { Bot, User } from "lucide-react"
 
 type Message = {
   role: "user" | "assistant"
@@ -15,10 +18,29 @@ type Message = {
 }
 
 export default function AgentPage() {
+  const { status } = useSession()
+  const router = useRouter()
+
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Proteção de rota: se não estiver logado, manda pro /login
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace("/login?callbackUrl=/agente")
+    }
+  }, [status, router])
+
+  if (status === "loading") {
+    return <p>Carregando sessão...</p>
+  }
+
+  if (status === "unauthenticated") {
+    // enquanto redireciona
+    return null
+  }
 
   async function handleSend(e?: React.FormEvent) {
     e?.preventDefault()

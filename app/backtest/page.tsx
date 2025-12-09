@@ -1,6 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
+import { TrendingUp } from "lucide-react"
+
 import { runBacktest } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -22,9 +26,20 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Label } from "@/components/ui/label"
-import { TrendingUp } from "lucide-react"
 
 type MarketType = "stocks" | "forex" | "crypto"
+
+type BacktestSetup = {
+  Horario_Gatilho: string
+  Cor_Gatilho: string
+  Sequencia_Esperada: string
+  Resultado_Final: string
+}
+
+type BacktestStats = {
+  win_rate?: number
+  counts?: Record<string, number>
+}
 
 type BacktestResult = {
   symbol: string
@@ -32,19 +47,14 @@ type BacktestResult = {
   start_date: string
   end_date: string
   total_setups: number
-  stats: {
-    win_rate?: number
-    counts?: Record<string, number>
-  }
-  setups: {
-    Horario_Gatilho: string
-    Cor_Gatilho: string
-    Sequencia_Esperada: string
-    Resultado_Final: string
-  }[]
+  stats: BacktestStats
+  setups: BacktestSetup[]
 }
 
 export default function BacktestPage() {
+  const { status } = useSession()
+  const router = useRouter()
+
   const [symbol, setSymbol] = useState("AAPL")
   const [market, setMarket] = useState<MarketType>("stocks")
   const [startDate, setStartDate] = useState("2024-01-02")
@@ -52,6 +62,21 @@ export default function BacktestPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<BacktestResult | null>(null)
+
+  // Proteção de rota
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace("/login?callbackUrl=/backtest")
+    }
+  }, [status, router])
+
+  if (status === "loading") {
+    return <p>Carregando sessão...</p>
+  }
+
+  if (status === "unauthenticated") {
+    return null
+  }
 
   async function handleRunBacktest(e: React.FormEvent) {
     e.preventDefault()
@@ -66,7 +91,7 @@ export default function BacktestPage() {
         start_date: startDate,
         end_date: endDate,
       })
-      setResult(data)
+      setResult(data as BacktestResult)
     } catch (err) {
       console.error(err)
       setError("Erro ao rodar o backtest. Confira as datas e tente de novo.")
