@@ -1,18 +1,21 @@
-import type { NextAuthOptions, User } from "next-auth";
+import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { pool } from "@/lib/db";
 
-/**
- * Tipo do usuário retornado pelo banco
- */
-type DBUser = {
-  id: string;
+import type { JWT } from "next-auth/jwt";
+import type { User as NextAuthUser } from "next-auth";
+
+const BACKEND_URL = process.env.BACKEND_URL;
+
+interface BackendUser {
+  id: number;
   email: string;
-  name: string;
+  name?: string | null;
   role: "free" | "premium" | "admin";
-};
+}
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
+
   session: {
     strategy: "jwt",
   },
@@ -21,26 +24,42 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "text" },
+        email: { label: "E-mail", type: "text" },
+        password: { label: "Senha", type: "password" },
       },
 
-      async authorize(credentials): Promise<User | null> {
-        if (!credentials?.email) return null;
+      async authorize(credentials): Promise<NextAuthUser | null> {
+        if (!credentials?.email || !credentials.password) return null;
 
-        const result = await pool.query<DBUser>(
-          "SELECT * FROM users WHERE email = $1 LIMIT 1",
-          [credentials.email]
-        );
+        const loginRes = await fetch(`${BACKEND_URL}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            username: credentials.email,
+            password: credentials.password,
+          }),
+        });
 
-        if (result.rowCount === 0) return null;
+        if (!loginRes.ok) return null;
 
-        const user = result.rows[0];
+        const loginData = await loginRes.json();
+        const accessToken = loginData.access_token;
+        if (!accessToken) return null;
+
+        const meRes = await fetch(`${BACKEND_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+
+        if (!meRes.ok) return null;
+
+        const user = (await meRes.json()) as BackendUser;
 
         return {
-          id: user.id,
+          id: String(user.id),
           email: user.email,
-          name: user.name,
+          name: user.name ?? "",
           role: user.role,
+          accessToken,
         };
       },
     }),
@@ -50,21 +69,32 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.email = user.email;
-        token.name = user.name;
-        token.role = (user as DBUser).role;
+        token.email = user.email!;
+        token.name = user.name ?? null;
+        (token as JWT).role = user.role;
+        (token as JWT).accessToken = user.accessToken;
       }
       return token;
     },
 
     async session({ session, token }) {
+      const jwt = token as JWT;
+
       session.user = {
-        id: token.id as string,
-        email: token.email as string,
-        name: token.name as string,
-        role: token.role as "free" | "premium" | "admin",
+        id: jwt.id,
+        email: jwt.email,
+        name: jwt.name ?? "",
+        role: jwt.role,
+        accessToken: jwt.accessToken,
       };
+
+      session.accessToken = jwt.accessToken;
+
       return session;
     },
+  },
+
+  pages: {
+    signIn: "/login",
   },
 };
