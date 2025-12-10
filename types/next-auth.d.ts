@@ -1,19 +1,14 @@
 import NextAuth, { DefaultSession } from "next-auth";
 
+import NextAuth from "next-auth";
+
 declare module "next-auth" {
   interface User {
-    id: string;
-    role: string;
-    accessToken: string;
+    role: "free" | "premium" | "admin";
   }
 
   interface Session {
-    user: {
-      id: string;
-      role: string;
-    } & DefaultSession["user"];
-
-    accessToken: string;
+    user: User;
   }
 }
 

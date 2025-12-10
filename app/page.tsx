@@ -1,21 +1,33 @@
-// app/page.tsx
 import Link from "next/link";
-import { ArrowRight, Sparkles, ShieldCheck, Zap, Crown } from "lucide-react";
+import { ArrowRight, Sparkles, ShieldCheck, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DottedGlowBackground } from "@/components/ui/dotted-glow-background";
 
 export default function LandingPage() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-black via-zinc-950 to-black text-zinc-50">
-      {/* glow de fundo */}
-      <div className="pointer-events-none absolute inset-0">
+    <div className="relative min-h-screen overflow-hidden text-zinc-50 bg-transparent">
+      {/* BACKGROUND ACETERNITY  --- Fica na camada mais baixa */}
+      <DottedGlowBackground
+        className="absolute inset-0 -z-50"
+        backgroundOpacity={0.1}
+        opacity={0.55}
+        radius={2}
+        gap={14}
+        speedScale={1.5}
+        darkColor="rgba(255,255,255,0.15)"
+        darkGlowColor="rgba(200,100,255,0.3)"
+      />
+
+      {/* OVERLAY COLORIDO */}
+      <div className="pointer-events-none absolute inset-0 -z-40">
         <div className="absolute -left-32 top-10 h-72 w-72 rounded-full bg-purple-600/30 blur-3xl" />
         <div className="absolute -right-32 top-40 h-72 w-72 rounded-full bg-emerald-500/25 blur-3xl" />
-        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/70 to-transparent" />
       </div>
 
-      <main className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-10 md:px-8">
-        {/* Hero */}
+      <main className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-10 md:px-8">
+        {/* HERO */}
         <section className="flex flex-1 flex-col items-center gap-8 text-center md:items-start md:text-left">
           <div className="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/70 px-4 py-1 text-xs text-zinc-400 backdrop-blur">
             <Sparkles className="h-4 w-4 text-amber-400" />
@@ -30,23 +42,21 @@ export default function LandingPage() {
               </span>
             </h1>
             <p className="text-balance text-sm text-zinc-300 md:text-base">
-              Converse com um agente especialista em mercado e rode backtests da
-              sua técnica de gatilho universal em poucos cliques. Sem planilhas,
-              sem dor de cabeça.
+              Converse com um agente especialista em mercado e rode backtests em
+              minutos.
             </p>
           </div>
 
           <div className="flex flex-col items-center gap-3 md:flex-row">
-            <Button
-              asChild
-              size="lg"
-              className="group relative translate-y-0 transform rounded-full bg-emerald-500 px-6 py-2 text-sm font-medium text-black shadow-[0_15px_40px_rgba(16,185,129,0.5)] transition-all hover:-translate-y-0.5 hover:shadow-[0_25px_60px_rgba(16,185,129,0.55)]"
-            >
-              <Link href="/login">
+            <Link href="/login">
+              <Button
+                size="lg"
+                className="group relative rounded-full bg-emerald-500 px-6 py-2 text-sm font-medium text-black shadow-[0_15px_40px_rgba(16,185,129,0.5)] transition-all hover:-translate-y-0.5 hover:shadow-[0_25px_60px_rgba(16,185,129,0.55)]"
+              >
                 Começar agora
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Link>
-            </Button>
+              </Button>
+            </Link>
 
             <p className="text-xs text-zinc-400">
               Não precisa inserir cartão para testar o plano gratuito.
@@ -54,7 +64,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Planos Free vs Premium */}
+        {/* PLANOS */}
         <section className="relative mt-8 grid gap-4 md:grid-cols-2">
           <Card className="group border-zinc-800/80 bg-zinc-950/70 backdrop-blur-sm transition-all hover:border-emerald-400/60 hover:bg-zinc-950/90">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
@@ -67,7 +77,7 @@ export default function LandingPage() {
               </span>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-zinc-300">
-              <p>Converse com o agente especialista e teste suas ideias.</p>
+              <p>Acesso ao agente de IA para tirar dúvidas do mercado.</p>
               <ul className="space-y-1 text-xs text-zinc-400">
                 <li>• Acesso ao agente de IA</li>
                 <li>• Respostas em português</li>
@@ -87,47 +97,19 @@ export default function LandingPage() {
               </span>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-zinc-200">
-              <p>
-                Tenha acesso ao pacote completo de backtests e métricas em
-                minutos.
-              </p>
+              <p>Acesso ilimitado à máquina de backtests automática.</p>
               <ul className="space-y-1 text-xs text-zinc-300">
-                <li>• Todos recursos do plano Free</li>
-                <li>• Backtests automatizados em 1 minuto</li>
-                <li>• Painel com históricos, winrate e métricas chaves</li>
+                <li>• Todos recursos do Free</li>
+                <li>• Backtests em 1 minuto</li>
+                <li>• Winrate, métricas e histórico</li>
               </ul>
             </CardContent>
           </Card>
         </section>
 
-        {/* Benefícios rápidos */}
-        <section className="mt-6 grid gap-4 text-xs text-zinc-300 md:grid-cols-3">
-          <div className="flex items-start gap-2">
-            <Zap className="mt-0.5 h-4 w-4 text-sky-400" />
-            <div>
-              <p className="font-medium text-zinc-100">Rápido</p>
-              <p className="text-zinc-400">Backtests prontos em minutos.</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-2">
-            <ShieldCheck className="mt-0.5 h-4 w-4 text-emerald-400" />
-            <div>
-              <p className="font-medium text-zinc-100">Confiável</p>
-              <p className="text-zinc-400">Fluxo padronizado para evitar erros.</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-2">
-            <Sparkles className="mt-0.5 h-4 w-4 text-purple-400" />
-            <div>
-              <p className="font-medium text-zinc-100">Feito para traders</p>
-              <p className="text-zinc-400">UI pensada para o dia a dia de trade.</p>
-            </div>
-          </div>
-        </section>
-
-        {/* Footer com link sutil para admin */}
+        {/* FOOTER */}
         <footer className="mt-10 flex items-center justify-between border-t border-zinc-800 pt-4 text-[11px] text-zinc-500">
-          <span>© {new Date().getFullYear()} Trading Agent. Todos os direitos reservados.</span>
+          <span>© {new Date().getFullYear()} Trading Agent</span>
           <Link
             href="/admin"
             className="text-[10px] text-zinc-600 hover:text-zinc-300 hover:underline"

@@ -114,11 +114,20 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
+
+  *:focus {
+    @apply outline-ring/50;
+  }
+
   body {
     @apply bg-background text-foreground;
   }
+}
+
+header {
+  backdrop-filter: blur(18px);
 }
 
 .premium-card {
