@@ -3,8 +3,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const PUBLIC_ROUTES = ["/", "/login", "/register"];
-const PROTECTED_PREFIXES = ["/app", "/agente", "/backtest", "/admin"];
+const PUBLIC_ROUTES = ["/", "/login"];
 
 export async function middleware(req: NextRequest) {
   const token = await getToken({
@@ -15,30 +14,30 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   const isPublic = PUBLIC_ROUTES.includes(pathname);
-  const isProtected = PROTECTED_PREFIXES.some((prefix) =>
-    pathname.startsWith(prefix)
-  );
+  const isProtected =
+    pathname.startsWith("/app") ||
+    pathname.startsWith("/agente") ||
+    pathname.startsWith("/backtest") ||
+    pathname.startsWith("/admin");
 
-  // 1) Usuário NÃO logado tentando acessar rota protegida
+  // 1) Não logado tentando acessar rota protegida → manda pro login
   if (!token && isProtected) {
     const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
+    loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // 2) Usuário logado tentando ir para login/register/landing
-  if (token && isPublic) {
+  // 2) Logado tentando ir pra /login → manda para /app
+  if (token && pathname === "/login") {
     return NextResponse.redirect(new URL("/app", req.url));
   }
 
-  // 3) Rota admin: validar role
+  // 3) Rota admin → só entra se role === "admin"
   if (pathname.startsWith("/admin")) {
     interface TokenWithRole {
       role?: string;
     }
-
     const role = (token as TokenWithRole | null)?.role;
-
     if (role !== "admin") {
       return NextResponse.redirect(new URL("/app", req.url));
     }
@@ -51,7 +50,6 @@ export const config = {
   matcher: [
     "/",
     "/login",
-    "/register",
     "/app/:path*",
     "/agente/:path*",
     "/backtest/:path*",
