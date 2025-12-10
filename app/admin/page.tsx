@@ -36,7 +36,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, ChevronRight, Loader2, Shield, UserPlus } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Shield,
+  UserPlus,
+} from "lucide-react";
 
 const PAGE_SIZE = 8;
 
@@ -186,9 +192,7 @@ export default function AdminPage() {
   const getActiveBadge = (isActive: boolean) => {
     if (isActive) {
       return (
-        <Badge className="bg-emerald-600/90 hover:bg-emerald-600">
-          Ativo
-        </Badge>
+        <Badge className="bg-emerald-600/90 hover:bg-emerald-600">Ativo</Badge>
       );
     }
     return (
@@ -293,9 +297,7 @@ export default function AdminPage() {
 
             <Card className="border border-border/60">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Admins
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">Admins</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
@@ -304,6 +306,38 @@ export default function AdminPage() {
                 <p className="text-xs text-muted-foreground">
                   Contas com acesso ao painel.
                 </p>
+              </CardContent>
+            </Card>
+            {/* Últimos usuários */}
+            <Card className="mt-2 border border-border/60">
+              <CardHeader>
+                <CardTitle className="text-base">
+                  Últimos usuários cadastrados
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {!stats ? (
+                  <Skeleton className="h-24 w-full" />
+                ) : (
+                  <ul className="space-y-2">
+                    {stats.latest_users.map((u) => (
+                      <li
+                        key={u.id}
+                        className="flex justify-between border-b pb-2"
+                      >
+                        <div>
+                          <p className="font-medium">{u.name ?? "Sem nome"}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {u.email}
+                          </p>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(u.created_at).toLocaleString("pt-BR")}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </CardContent>
             </Card>
           </>

@@ -22,6 +22,14 @@ export interface AdminStats {
   active_users: number;
   total_admins: number;
   today_signups: number;
+  latest_users: {
+    id: number;
+    email: string;
+    name: string | null;
+    role: UserRole;
+    is_active: boolean;
+    created_at: string;
+  }[];
 }
 
 function buildHeaders(accessToken: string): HeadersInit {
