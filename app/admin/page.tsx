@@ -25,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,13 +36,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
 import { Skeleton } from "@/components/ui/skeleton";
+
 import {
   ChevronLeft,
   ChevronRight,
   Loader2,
   Shield,
   UserPlus,
+  Users,
+  BarChart3,
+  CheckCircle2,
+  Trash2,
+  ArrowUpCircle,
+  ArrowDownCircle,
 } from "lucide-react";
 
 const PAGE_SIZE = 8;
@@ -63,10 +72,9 @@ export default function AdminPage() {
   const [globalLoading, setGlobalLoading] = useState<boolean>(false);
 
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
-
   const [page, setPage] = useState<number>(1);
 
-  // --- Load data ---
+  // LOAD DATA
   useEffect(() => {
     if (!accessToken) return;
 
@@ -76,8 +84,7 @@ export default function AdminPage() {
         const data = await fetchAdminUsers(accessToken);
         setUsers(data);
       } catch (err) {
-        const error = err as Error;
-        toast.error(error.message);
+        toast.error((err as Error).message);
       } finally {
         setIsLoadingUsers(false);
       }
@@ -89,20 +96,21 @@ export default function AdminPage() {
         const data = await fetchAdminStats(accessToken);
         setStats(data);
       } catch (err) {
-        const error = err as Error;
-        toast.error(error.message);
+        toast.error((err as Error).message);
       } finally {
         setIsLoadingStats(false);
       }
     };
 
-    void loadUsers();
-    void loadStats();
+    loadUsers();
+    loadStats();
   }, [accessToken]);
 
-  const totalPages = useMemo(() => {
-    return Math.max(1, Math.ceil(users.length / PAGE_SIZE));
-  }, [users.length]);
+  // PAGINATION
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(users.length / PAGE_SIZE)),
+    [users.length]
+  );
 
   const paginatedUsers = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE;
@@ -111,46 +119,41 @@ export default function AdminPage() {
 
   const isBusy = authLoading || globalLoading;
 
-  // --- Action handlers ---
+  // ACTION HANDLERS
+  const handleApprove = (user: AdminUser) =>
+    setPendingAction({ type: "approve", user });
 
-  const handleApprove = (userToApprove: AdminUser) => {
-    setPendingAction({ type: "approve", user: userToApprove });
-  };
+  const handleDelete = (user: AdminUser) =>
+    setPendingAction({ type: "delete", user });
 
-  const handleDelete = (userToDelete: AdminUser) => {
-    setPendingAction({ type: "delete", user: userToDelete });
-  };
-
-  const handleToggleRole = (userToChange: AdminUser) => {
-    const newRole: UserRole = userToChange.role === "admin" ? "user" : "admin";
-    setPendingAction({
-      type: "promote",
-      user: userToChange,
-      newRole,
-    });
+  const handleToggleRole = (user: AdminUser) => {
+    const newRole: UserRole = user.role === "admin" ? "user" : "admin";
+    setPendingAction({ type: "promote", user, newRole });
   };
 
   const executePendingAction = async () => {
     if (!pendingAction || !accessToken) return;
 
     setGlobalLoading(true);
+
     try {
       if (pendingAction.type === "approve") {
         const updated = await approveUser(pendingAction.user.id, accessToken);
         setUsers((prev) =>
           prev.map((u) => (u.id === updated.id ? updated : u))
         );
-        toast.success("Usuário aprovado com sucesso.");
+        toast.success("Usuário aprovado!");
       }
 
       if (pendingAction.type === "delete") {
         await deleteUser(pendingAction.user.id, accessToken);
-        setUsers((prev) => prev.filter((u) => u.id !== pendingAction.user.id));
-        toast.success("Usuário removido com sucesso.");
+        setUsers((prev) =>
+          prev.filter((u) => u.id !== pendingAction.user.id)
+        );
+        toast.success("Usuário removido!");
       }
 
       if (pendingAction.type === "promote") {
-        if (!pendingAction.newRole) return;
         const updated = await updateUserRole(
           pendingAction.user.id,
           pendingAction.newRole,
@@ -161,79 +164,56 @@ export default function AdminPage() {
         );
         toast.success(
           updated.role === "admin"
-            ? "Usuário promovido para admin."
-            : "Usuário atualizado para role user."
+            ? "Usuário promovido a admin!"
+            : "Usuário rebaixado para user."
         );
       }
     } catch (err) {
-      const error = err as Error;
-      toast.error(error.message);
+      toast.error((err as Error).message);
     } finally {
       setGlobalLoading(false);
       setPendingAction(null);
     }
   };
 
-  // --- UI helpers ---
-
-  const getRoleBadge = (role: UserRole) => {
-    if (role === "admin") {
-      return (
-        <Badge className="gap-1 bg-purple-600/90 hover:bg-purple-600">
-          <Shield className="h-3 w-3" />
-          Admin
-        </Badge>
-      );
-    }
-
-    return <Badge variant="outline">User</Badge>;
-  };
-
-  const getActiveBadge = (isActive: boolean) => {
-    if (isActive) {
-      return (
-        <Badge className="bg-emerald-600/90 hover:bg-emerald-600">Ativo</Badge>
-      );
-    }
-    return (
-      <Badge variant="outline" className="border-amber-500 text-amber-500">
-        Pendente
+  // BADGES
+  const getRoleBadge = (role: UserRole) =>
+    role === "admin" ? (
+      <Badge className="bg-purple-600/80 text-white shadow-sm flex gap-1 items-center">
+        <Shield className="h-3 w-3 animate-pulse" />
+        Admin
       </Badge>
+    ) : (
+      <Badge className="border-gray-400 text-gray-300">User</Badge>
     );
-  };
+
+  const getActiveBadge = (isActive: boolean) =>
+    isActive ? (
+      <Badge className="bg-emerald-600/80 text-white px-2">Ativo</Badge>
+    ) : (
+      <Badge className="border-amber-500 text-amber-400 px-2">Pendente</Badge>
+    );
 
   return (
-    <div className="flex min-h-screen flex-col gap-6 p-6">
-      {/* Top bar */}
-      <div className="flex items-center justify-between">
+    <div className="min-h-screen p-6 bg-gradient-to-br from-[#050505] via-[#0b0b0b] to-[#111] text-white animate-fade-in">
+      {/* HEADER */}
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Painel Administrativo
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Gerencie usuários, permissões e acompanhe métricas da plataforma.
+          <h1 className="text-3xl font-bold tracking-tight">Painel Admin</h1>
+          <p className="text-sm text-gray-400">
+            Gerencie usuários, permissões e acompanhe métricas.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          {user && (
-            <div className="flex flex-col items-end text-right text-xs">
-              <span className="font-medium">{user.name ?? user.email}</span>
-              <span className="text-[11px] text-muted-foreground">
-                Role: {user.role ?? "user"}
-              </span>
-            </div>
-          )}
-          {isBusy && (
-            <Badge variant="outline" className="gap-1">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Atualizando...
-            </Badge>
-          )}
-        </div>
+        {user && (
+          <div className="text-right text-xs">
+            <p className="font-semibold">{user.name ?? user.email}</p>
+            <p className="text-gray-400">Role: {user.role}</p>
+          </div>
+        )}
       </div>
 
-      {/* Cards de métricas */}
+      {/* METRIC CARDS */}
       <div className="grid gap-4 md:grid-cols-4">
         {isLoadingStats || !stats ? (
           <>
@@ -244,128 +224,86 @@ export default function AdminPage() {
           </>
         ) : (
           <>
-            <Card className="border border-border/60 bg-gradient-to-br from-zinc-900/80 to-zinc-950">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Usuários totais
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {stats.total_users.toLocaleString("pt-BR")}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Inclui ativos e pendentes.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Pendentes de aprovação
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  <div className="text-2xl font-bold">
-                    {stats.pending_users.toLocaleString("pt-BR")}
-                  </div>
-                  <UserPlus className="h-4 w-4 text-amber-400" />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Cadastros aguardando liberação.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Usuários ativos
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {stats.active_users.toLocaleString("pt-BR")}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Com acesso liberado ao agente.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Admins</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {stats.total_admins.toLocaleString("pt-BR")}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Contas com acesso ao painel.
-                </p>
-              </CardContent>
-            </Card>
-            {/* Últimos usuários */}
-            <Card className="mt-2 border border-border/60">
+            {/* TOTAL USERS */}
+            <Card className="premium-card">
               <CardHeader>
-                <CardTitle className="text-base">
-                  Últimos usuários cadastrados
+                <CardTitle className="premium-title flex items-center gap-2">
+                  <Users className="h-4 w-4 text-blue-400 animate-fade" />
+                  Usuários Totais
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {!stats ? (
-                  <Skeleton className="h-24 w-full" />
-                ) : (
-                  <ul className="space-y-2">
-                    {stats.latest_users.map((u) => (
-                      <li
-                        key={u.id}
-                        className="flex justify-between border-b pb-2"
-                      >
-                        <div>
-                          <p className="font-medium">{u.name ?? "Sem nome"}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {u.email}
-                          </p>
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(u.created_at).toLocaleString("pt-BR")}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <p className="premium-number">
+                  {stats.total_users.toLocaleString("pt-BR")}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* PENDING */}
+            <Card className="premium-card">
+              <CardHeader>
+                <CardTitle className="premium-title flex items-center gap-2">
+                  <UserPlus className="h-4 w-4 text-amber-400 animate-bounce" />
+                  Pendentes
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="premium-number">
+                  {stats.pending_users.toLocaleString("pt-BR")}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* ACTIVE USERS */}
+            <Card className="premium-card">
+              <CardHeader>
+                <CardTitle className="premium-title flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-400 animate-pulse" />
+                  Ativos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="premium-number">
+                  {stats.active_users.toLocaleString("pt-BR")}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* ADMINS */}
+            <Card className="premium-card">
+              <CardHeader>
+                <CardTitle className="premium-title flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-purple-400 animate-pulse" />
+                  Admins
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="premium-number">{stats.total_admins}</p>
               </CardContent>
             </Card>
           </>
         )}
       </div>
 
-      {/* Tabela de usuários */}
-      <Card className="mt-2">
+      {/* USERS TABLE */}
+      <Card className="premium-table mt-6">
         <CardHeader>
-          <CardTitle className="text-base">Usuários cadastrados</CardTitle>
+          <CardTitle className="text-lg">Usuários cadastrados</CardTitle>
         </CardHeader>
+
         <CardContent>
           {isLoadingUsers ? (
-            <div className="space-y-3">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <Skeleton key={index} className="h-10 w-full rounded-md" />
+            <>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full rounded-md" />
               ))}
-            </div>
-          ) : users.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Nenhum usuário encontrado.
-            </p>
+            </>
           ) : (
             <>
-              <div className="rounded-md border">
+              <div className="overflow-hidden rounded-xl border border-white/10">
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="bg-white/5">
                       <TableHead>Usuário</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Role</TableHead>
@@ -373,34 +311,29 @@ export default function AdminPage() {
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
+
                   <TableBody>
                     {paginatedUsers.map((u) => (
-                      <TableRow key={u.id}>
+                      <TableRow key={u.id} className="hover:bg-white/5 transition">
                         <TableCell>
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-sm font-medium">
-                              {u.name ?? "Sem nome"}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {u.email}
-                            </span>
-                          </div>
+                          <p className="font-semibold">{u.name ?? "Sem nome"}</p>
+                          <p className="text-xs text-gray-400">{u.email}</p>
                         </TableCell>
+
                         <TableCell>{getActiveBadge(u.is_active)}</TableCell>
+
                         <TableCell>{getRoleBadge(u.role)}</TableCell>
-                        <TableCell>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(u.created_at).toLocaleString("pt-BR")}
-                          </span>
+
+                        <TableCell className="text-xs text-gray-400">
+                          {new Date(u.created_at).toLocaleString("pt-BR")}
                         </TableCell>
+
                         <TableCell className="flex justify-end gap-2">
                           {!u.is_active && (
                             <Button
                               size="sm"
-                              variant="outline"
-                              className="border-emerald-600/70 text-emerald-400 hover:bg-emerald-600/10"
+                              className="premium-btn-green"
                               onClick={() => handleApprove(u)}
-                              disabled={isBusy}
                             >
                               Aprovar
                             </Button>
@@ -408,20 +341,22 @@ export default function AdminPage() {
 
                           <Button
                             size="sm"
-                            variant="outline"
+                            className="premium-btn-blue"
                             onClick={() => handleToggleRole(u)}
-                            disabled={isBusy}
                           >
-                            {u.role === "admin" ? "Rebaixar" : "Promover"}
+                            {u.role === "admin" ? (
+                              <ArrowDownCircle className="h-4 w-4" />
+                            ) : (
+                              <ArrowUpCircle className="h-4 w-4" />
+                            )}
                           </Button>
 
                           <Button
                             size="sm"
-                            variant="destructive"
+                            className="premium-btn-red"
                             onClick={() => handleDelete(u)}
-                            disabled={isBusy}
                           >
-                            Excluir
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -430,75 +365,60 @@ export default function AdminPage() {
                 </Table>
               </div>
 
-              {/* Paginação */}
-              {totalPages > 1 && (
-                <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>
-                    Página {page} de {totalPages}
-                  </span>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      disabled={page === 1 || isBusy}
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      disabled={page === totalPages || isBusy}
-                      onClick={() =>
-                        setPage((p) => Math.min(totalPages, p + 1))
-                      }
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
+              {/* PAGINATION */}
+              <div className="flex justify-between items-center mt-4 text-sm text-gray-300">
+                <p>
+                  Página {page} de {totalPages}
+                </p>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={page === 1}
+                    onClick={() => setPage(page - 1)}
+                  >
+                    <ChevronLeft />
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={page === totalPages}
+                    onClick={() => setPage(page + 1)}
+                  >
+                    <ChevronRight />
+                  </Button>
                 </div>
-              )}
+              </div>
             </>
           )}
         </CardContent>
       </Card>
 
-      {/* Dialog de confirmação */}
+      {/* CONFIRM DIALOG */}
       <AlertDialog
         open={pendingAction !== null}
-        onOpenChange={(open) => {
-          if (!open) setPendingAction(null);
-        }}
+        onOpenChange={(open) => !open && setPendingAction(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="premium-dialog">
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {pendingAction?.type === "approve" && "Aprovar usuário"}
-              {pendingAction?.type === "delete" && "Remover usuário"}
-              {pendingAction?.type === "promote" && "Alterar role do usuário"}
-            </AlertDialogTitle>
+            <AlertDialogTitle>Confirmar ação</AlertDialogTitle>
             <AlertDialogDescription>
-              {pendingAction?.user && (
-                <>
-                  Ação para o usuário{" "}
-                  <span className="font-semibold">
-                    {pendingAction.user.email}
-                  </span>
-                  .
-                </>
-              )}
+              Você está prestes a executar uma ação em{" "}
+              <strong>{pendingAction?.user?.email}</strong>.
             </AlertDialogDescription>
           </AlertDialogHeader>
+
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={globalLoading}>
-              Cancelar
-            </AlertDialogCancel>
+            <AlertDialogCancel disabled={globalLoading}>Cancelar</AlertDialogCancel>
+
             <AlertDialogAction
-              onClick={executePendingAction}
               disabled={globalLoading}
+              onClick={executePendingAction}
             >
               {globalLoading && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
               )}
               Confirmar
             </AlertDialogAction>

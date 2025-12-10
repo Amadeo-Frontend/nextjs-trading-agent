@@ -120,3 +120,35 @@
     @apply bg-background text-foreground;
   }
 }
+
+.premium-card {
+  @apply border border-white/10 bg-white/10 backdrop-blur-xl rounded-2xl shadow-xl p-4 transition-all duration-300 hover:bg-white/20;
+}
+
+.premium-title {
+  @apply text-sm font-medium text-gray-300;
+}
+
+.premium-number {
+  @apply text-3xl font-bold text-white drop-shadow-md;
+}
+
+.premium-table {
+  @apply border border-white/10 bg-white/5 backdrop-blur-xl shadow-xl rounded-2xl;
+}
+
+.premium-btn-green {
+  @apply bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg active:scale-95 transition-all;
+}
+
+.premium-btn-red {
+  @apply bg-red-600 hover:bg-red-500 text-white shadow-lg active:scale-95 transition-all;
+}
+
+.premium-btn-blue {
+  @apply bg-blue-600 hover:bg-blue-500 text-white shadow-lg active:scale-95 transition-all;
+}
+
+.premium-dialog {
+  @apply border border-white/10 bg-white/10 backdrop-blur-xl shadow-2xl rounded-xl;
+}

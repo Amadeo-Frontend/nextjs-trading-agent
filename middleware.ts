@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const AUTH_ROUTES = ["/login", "/register"];
+const PUBLIC_ROUTES = ["/login", "/register"];
+const PROTECTED_ROUTES = ["/", "/agente", "/backtest", "/admin"];
 
 export async function middleware(req: NextRequest) {
   const token = await getToken({
@@ -12,32 +13,31 @@ export async function middleware(req: NextRequest) {
 
   const { pathname } = req.nextUrl;
 
-  const isAuthRoute = AUTH_ROUTES.includes(pathname);
+  const isPublic = PUBLIC_ROUTES.includes(pathname);
+  const isProtected = PROTECTED_ROUTES.some((r) => pathname.startsWith(r));
 
-  const isProtectedRoute =
-    pathname.startsWith("/agente") ||
-    pathname.startsWith("/backtest") ||
-    pathname.startsWith("/admin");
-
-  // 1) Não logado tentando acessar rota protegida
-  if (!token && isProtectedRoute) {
+  // 1) Usuário NÃO logado tentando acessar rota protegida
+  if (!token && isProtected) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // 2) Logado tentando ir para /login ou /register
-  if (token && isAuthRoute) {
-    return NextResponse.redirect(new URL("/agente", req.url));
+  // 2) Usuário logado tentando ir para login/register
+  if (token && isPublic) {
+    return NextResponse.redirect(new URL("/", req.url));
   }
 
-  // 3) Rota de admin, mas usuário não é admin
+  // 3) Rota admin: validar role
   if (pathname.startsWith("/admin")) {
-    const tokenWithRole = token as { role?: string } | null;
-    const role = tokenWithRole?.role;
+    interface TokenWithRole {
+      role?: string;
+    }
+
+    const role = (token as TokenWithRole | null)?.role;
 
     if (role !== "admin") {
-      return NextResponse.redirect(new URL("/agente", req.url));
+      return NextResponse.redirect(new URL("/", req.url));
     }
   }
 
@@ -46,6 +46,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
+    "/",
     "/login",
     "/register",
     "/agente/:path*",
