@@ -1,9 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/use-auth";
+import {
+  fetchAdminUsers,
+  fetchAdminStats,
+  approveUser,
+  updateUserRole,
+  deleteUser,
+  type AdminUser,
+  type AdminStats,
+  type UserRole,
+} from "@/lib/api-admin";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,8 +25,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,140 +35,64 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-import {
-  CheckCircle2,
-  Loader2,
-  ShieldCheck,
-  Trash2,
-  UserCheck,
-  Users,
-} from "lucide-react";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
-
-type UserRole = "admin" | "user";
-
-type AdminUser = {
-  id: number;
-  email: string;
-  name: string | null;
-  role: UserRole;
-  is_active: boolean;
-  is_approved: boolean;
-  created_at: string;
-  last_login_at: string | null;
-};
-
-type AdminStats = {
-  total_users: number;
-  active_users: number;
-  admin_users: number;
-  visits_24h: number;
-  visits_7d: number;
-};
-
-type AdminActionType = "delete" | "promote" | "approve";
-
-type PendingAction = {
-  type: AdminActionType;
-  user: AdminUser;
-} | null;
+import { Skeleton } from "@/components/ui/skeleton";
+import { ChevronLeft, ChevronRight, Loader2, Shield, UserPlus } from "lucide-react";
 
 const PAGE_SIZE = 8;
 
+type PendingAction =
+  | { type: "approve"; user: AdminUser }
+  | { type: "delete"; user: AdminUser }
+  | { type: "promote"; user: AdminUser; newRole: UserRole }
+  | null;
+
 export default function AdminPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { accessToken, isLoading: authLoading, user } = useAuth();
 
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
 
   const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(true);
   const [isLoadingStats, setIsLoadingStats] = useState<boolean>(true);
-  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+  const [globalLoading, setGlobalLoading] = useState<boolean>(false);
+
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
 
   const [page, setPage] = useState<number>(1);
 
-  // ------------------------- PROTEÇÃO DE ROTA -------------------------
-
+  // --- Load data ---
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login");
-    }
-  }, [status, router]);
+    if (!accessToken) return;
 
-  const isAdmin = session?.user?.role === "admin";
-
-  // ------------------------- FETCH USERS -------------------------
-
-  async function fetchUsers(token: string) {
-    try {
-      setIsLoadingUsers(true);
-
-      const res = await fetch(`${BACKEND_URL}/admin/users`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as {
-          detail?: string;
-        };
-        throw new Error(data.detail ?? "Erro ao carregar usuários");
+    const loadUsers = async () => {
+      try {
+        setIsLoadingUsers(true);
+        const data = await fetchAdminUsers(accessToken);
+        setUsers(data);
+      } catch (err) {
+        const error = err as Error;
+        toast.error(error.message);
+      } finally {
+        setIsLoadingUsers(false);
       }
+    };
 
-      const data = (await res.json()) as AdminUser[];
-      setUsers(data);
-    } catch (err: unknown) {
-      const error = err as Error;
-      toast.error(error.message || "Erro ao carregar usuários");
-    } finally {
-      setIsLoadingUsers(false);
-    }
-  }
-
-  // ------------------------- FETCH STATS -------------------------
-
-  async function fetchStats(token: string) {
-    try {
-      setIsLoadingStats(true);
-
-      const res = await fetch(`${BACKEND_URL}/admin/stats`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) {
-        // Se não existir ainda, não quebra o painel
-        return;
+    const loadStats = async () => {
+      try {
+        setIsLoadingStats(true);
+        const data = await fetchAdminStats(accessToken);
+        setStats(data);
+      } catch (err) {
+        const error = err as Error;
+        toast.error(error.message);
+      } finally {
+        setIsLoadingStats(false);
       }
+    };
 
-      const data = (await res.json()) as AdminStats;
-      setStats(data);
-    } catch (err: unknown) {
-      // só loga, sem quebrar a experiência
-      console.error(err);
-    } finally {
-      setIsLoadingStats(false);
-    }
-  }
-
-  // ------------------------- CARREGAR DADOS INICIAIS -------------------------
-
-  useEffect(() => {
-    if (!session?.accessToken || !BACKEND_URL || !isAdmin) {
-      return;
-    }
-
-    void fetchUsers(session.accessToken as string);
-    void fetchStats(session.accessToken as string);
-  }, [session, isAdmin]);
-
-  // ------------------------- PAGINAÇÃO -------------------------
+    void loadUsers();
+    void loadStats();
+  }, [accessToken]);
 
   const totalPages = useMemo(() => {
     return Math.max(1, Math.ceil(users.length / PAGE_SIZE));
@@ -172,429 +103,333 @@ export default function AdminPage() {
     return users.slice(start, start + PAGE_SIZE);
   }, [users, page]);
 
-  function handleChangePage(newPage: number) {
-    if (newPage < 1 || newPage > totalPages) return;
-    setPage(newPage);
-  }
+  const isBusy = authLoading || globalLoading;
 
-  // ------------------------- AÇÕES ADMIN -------------------------
+  // --- Action handlers ---
 
-  async function performAction(type: AdminActionType, user: AdminUser) {
-    if (!session?.accessToken) return;
-    const token = session.accessToken as string;
+  const handleApprove = (userToApprove: AdminUser) => {
+    setPendingAction({ type: "approve", user: userToApprove });
+  };
 
+  const handleDelete = (userToDelete: AdminUser) => {
+    setPendingAction({ type: "delete", user: userToDelete });
+  };
+
+  const handleToggleRole = (userToChange: AdminUser) => {
+    const newRole: UserRole = userToChange.role === "admin" ? "user" : "admin";
+    setPendingAction({
+      type: "promote",
+      user: userToChange,
+      newRole,
+    });
+  };
+
+  const executePendingAction = async () => {
+    if (!pendingAction || !accessToken) return;
+
+    setGlobalLoading(true);
     try {
-      setActionLoadingId(user.id);
-
-      if (type === "delete") {
-        const res = await fetch(`${BACKEND_URL}/admin/users/${user.id}`, {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!res.ok) {
-          const data = (await res.json().catch(() => ({}))) as {
-            detail?: string;
-          };
-          throw new Error(data.detail ?? "Erro ao remover usuário");
-        }
-
-        setUsers((prev) => prev.filter((u) => u.id !== user.id));
-        toast.success("Usuário removido com sucesso");
+      if (pendingAction.type === "approve") {
+        const updated = await approveUser(pendingAction.user.id, accessToken);
+        setUsers((prev) =>
+          prev.map((u) => (u.id === updated.id ? updated : u))
+        );
+        toast.success("Usuário aprovado com sucesso.");
       }
 
-      if (type === "promote") {
-        const newRole: UserRole = user.role === "admin" ? "user" : "admin";
+      if (pendingAction.type === "delete") {
+        await deleteUser(pendingAction.user.id, accessToken);
+        setUsers((prev) => prev.filter((u) => u.id !== pendingAction.user.id));
+        toast.success("Usuário removido com sucesso.");
+      }
 
-        const res = await fetch(
-          `${BACKEND_URL}/admin/users/${user.id}/role`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ role: newRole }),
-          }
+      if (pendingAction.type === "promote") {
+        if (!pendingAction.newRole) return;
+        const updated = await updateUserRole(
+          pendingAction.user.id,
+          pendingAction.newRole,
+          accessToken
         );
-
-        if (!res.ok) {
-          const data = (await res.json().catch(() => ({}))) as {
-            detail?: string;
-          };
-          throw new Error(data.detail ?? "Erro ao atualizar papel do usuário");
-        }
-
         setUsers((prev) =>
-          prev.map((u) =>
-            u.id === user.id ? { ...u, role: newRole } : u
-          )
+          prev.map((u) => (u.id === updated.id ? updated : u))
         );
         toast.success(
-          newRole === "admin"
-            ? "Usuário promovido a admin"
-            : "Usuário rebaixado para user"
+          updated.role === "admin"
+            ? "Usuário promovido para admin."
+            : "Usuário atualizado para role user."
         );
       }
-
-      if (type === "approve") {
-        const res = await fetch(
-          `${BACKEND_URL}/admin/users/${user.id}/approve`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ approved: true }),
-          }
-        );
-
-        if (!res.ok) {
-          const data = (await res.json().catch(() => ({}))) as {
-            detail?: string;
-          };
-          throw new Error(data.detail ?? "Erro ao aprovar usuário");
-        }
-
-        setUsers((prev) =>
-          prev.map((u) =>
-            u.id === user.id ? { ...u, is_approved: true } : u
-          )
-        );
-        toast.success("Usuário aprovado com sucesso");
-      }
-    } catch (err: unknown) {
+    } catch (err) {
       const error = err as Error;
-      toast.error(error.message || "Erro ao executar ação");
+      toast.error(error.message);
     } finally {
-      setActionLoadingId(null);
+      setGlobalLoading(false);
       setPendingAction(null);
     }
-  }
+  };
 
-  function openActionDialog(type: AdminActionType, user: AdminUser) {
-    setPendingAction({ type, user });
-  }
+  // --- UI helpers ---
 
-  // ------------------------- TEXTO DO MODAL -------------------------
-
-  function getDialogTexts(action: AdminActionType | null) {
-    if (!action) {
-      return {
-        title: "",
-        description: "",
-        confirmLabel: "",
-      };
+  const getRoleBadge = (role: UserRole) => {
+    if (role === "admin") {
+      return (
+        <Badge className="gap-1 bg-purple-600/90 hover:bg-purple-600">
+          <Shield className="h-3 w-3" />
+          Admin
+        </Badge>
+      );
     }
 
-    if (action === "delete") {
-      return {
-        title: "Remover usuário",
-        description:
-          "Tem certeza que deseja remover este usuário? Essa ação não pode ser desfeita.",
-        confirmLabel: "Remover",
-      };
+    return <Badge variant="outline">User</Badge>;
+  };
+
+  const getActiveBadge = (isActive: boolean) => {
+    if (isActive) {
+      return (
+        <Badge className="bg-emerald-600/90 hover:bg-emerald-600">
+          Ativo
+        </Badge>
+      );
     }
-
-    if (action === "promote") {
-      return {
-        title: "Alterar papel do usuário",
-        description:
-          "Você está prestes a alterar o papel deste usuário (admin/user). Deseja continuar?",
-        confirmLabel: "Confirmar",
-      };
-    }
-
-    return {
-      title: "Aprovar usuário",
-      description:
-        "Confirme para aprovar este usuário e liberar o acesso ao sistema.",
-      confirmLabel: "Aprovar",
-    };
-  }
-
-  const dialogTexts = getDialogTexts(pendingAction?.type ?? null);
-
-  // ------------------------- MÉTRICAS CALCULADAS NO CLIENTE -------------------------
-
-  const pendingApprovals = users.filter((u) => !u.is_approved).length;
-  const totalAdmins = users.filter((u) => u.role === "admin").length;
-  const activeUsers = users.filter((u) => u.is_active).length;
-
-  // ------------------------- RENDER -------------------------
-
-  if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <Badge variant="outline" className="border-amber-500 text-amber-500">
+        Pendente
+      </Badge>
     );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3">
-        <ShieldCheck className="h-10 w-10 text-yellow-500" />
-        <p className="text-lg font-semibold">
-          Você não tem permissão para acessar esta página.
-        </p>
-      </div>
-    );
-  }
+  };
 
   return (
-    <div className="min-h-screen px-4 py-6 md:px-8 space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+    <div className="flex min-h-screen flex-col gap-6 p-6">
+      {/* Top bar */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Painel Admin</h1>
-          <p className="text-muted-foreground">
-            Gerencie usuários, permissões e acompanhe métricas do seu Trading
-            Agent.
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Painel Administrativo
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Gerencie usuários, permissões e acompanhe métricas da plataforma.
           </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {user && (
+            <div className="flex flex-col items-end text-right text-xs">
+              <span className="font-medium">{user.name ?? user.email}</span>
+              <span className="text-[11px] text-muted-foreground">
+                Role: {user.role ?? "user"}
+              </span>
+            </div>
+          )}
+          {isBusy && (
+            <Badge variant="outline" className="gap-1">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Atualizando...
+            </Badge>
+          )}
         </div>
       </div>
 
-      {/* CARDS DE MÉTRICAS */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Total de usuários */}
-        <Card className="relative overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Usuários totais
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoadingUsers ? (
-              <Skeleton className="h-7 w-16" />
-            ) : (
-              <p className="text-2xl font-bold">{users.length}</p>
-            )}
-          </CardContent>
-        </Card>
+      {/* Cards de métricas */}
+      <div className="grid gap-4 md:grid-cols-4">
+        {isLoadingStats || !stats ? (
+          <>
+            <Skeleton className="h-28 rounded-xl" />
+            <Skeleton className="h-28 rounded-xl" />
+            <Skeleton className="h-28 rounded-xl" />
+            <Skeleton className="h-28 rounded-xl" />
+          </>
+        ) : (
+          <>
+            <Card className="border border-border/60 bg-gradient-to-br from-zinc-900/80 to-zinc-950">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Usuários totais
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {stats.total_users.toLocaleString("pt-BR")}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Inclui ativos e pendentes.
+                </p>
+              </CardContent>
+            </Card>
 
-        {/* Admins */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4" />
-              Admins
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoadingUsers ? (
-              <Skeleton className="h-7 w-16" />
-            ) : (
-              <p className="text-2xl font-bold">{totalAdmins}</p>
-            )}
-          </CardContent>
-        </Card>
+            <Card className="border border-border/60">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Pendentes de aprovação
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2">
+                  <div className="text-2xl font-bold">
+                    {stats.pending_users.toLocaleString("pt-BR")}
+                  </div>
+                  <UserPlus className="h-4 w-4 text-amber-400" />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Cadastros aguardando liberação.
+                </p>
+              </CardContent>
+            </Card>
 
-        {/* Ativos */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <UserCheck className="h-4 w-4" />
-              Ativos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoadingUsers ? (
-              <Skeleton className="h-7 w-16" />
-            ) : (
-              <p className="text-2xl font-bold">{activeUsers}</p>
-            )}
-          </CardContent>
-        </Card>
+            <Card className="border border-border/60">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Usuários ativos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {stats.active_users.toLocaleString("pt-BR")}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Com acesso liberado ao agente.
+                </p>
+              </CardContent>
+            </Card>
 
-        {/* Visitas (se backend tiver stats) */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4" />
-              Visitas (24h)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoadingStats ? (
-              <Skeleton className="h-7 w-20" />
-            ) : (
-              <p className="text-2xl font-bold">
-                {stats ? stats.visits_24h : "-"}
-              </p>
-            )}
-          </CardContent>
-        </Card>
+            <Card className="border border-border/60">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Admins
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {stats.total_admins.toLocaleString("pt-BR")}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Contas com acesso ao painel.
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
-      {/* TABELA DE USUÁRIOS */}
-      <Card>
+      {/* Tabela de usuários */}
+      <Card className="mt-2">
         <CardHeader>
-          <CardTitle>Usuários</CardTitle>
+          <CardTitle className="text-base">Usuários cadastrados</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>E-mail</TableHead>
-                  <TableHead>Papel</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Aprovação</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoadingUsers ? (
-                  Array.from({ length: PAGE_SIZE }).map((_, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell>
-                        <Skeleton className="h-4 w-32" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-4 w-40" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-4 w-16" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-4 w-20" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-4 w-20" />
-                      </TableCell>
-                      <TableCell className="flex justify-end gap-2">
-                        <Skeleton className="h-8 w-24" />
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : paginatedUsers.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-6">
-                      Nenhum usuário encontrado.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  paginatedUsers.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">
-                        {user.name ?? "-"}
-                      </TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            user.role === "admin" ? "default" : "outline"
-                          }
-                          className="capitalize"
-                        >
-                          {user.role}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={user.is_active ? "default" : "secondary"}
-                          className="capitalize"
-                        >
-                          {user.is_active ? "ativo" : "inativo"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            user.is_approved ? "outline" : "destructive"
-                          }
-                        >
-                          {user.is_approved ? "Aprovado" : "Pendente"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right space-x-2">
-                        {!user.is_approved && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={actionLoadingId === user.id}
-                            onClick={() => openActionDialog("approve", user)}
-                          >
-                            {actionLoadingId === user.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              "Aprovar"
-                            )}
-                          </Button>
-                        )}
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={actionLoadingId === user.id}
-                          onClick={() => openActionDialog("promote", user)}
-                        >
-                          {actionLoadingId === user.id &&
-                          pendingAction?.type === "promote" ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : user.role === "admin" ? (
-                            "Rebaixar"
-                          ) : (
-                            "Promover"
-                          )}
-                        </Button>
-
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          disabled={actionLoadingId === user.id}
-                          onClick={() => openActionDialog("delete", user)}
-                        >
-                          {actionLoadingId === user.id &&
-                          pendingAction?.type === "delete" ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Paginação simples */}
-          {!isLoadingUsers && users.length > PAGE_SIZE && (
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-xs text-muted-foreground">
-                Página {page} de {totalPages}
-              </span>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleChangePage(page - 1)}
-                  disabled={page === 1}
-                >
-                  Anterior
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleChangePage(page + 1)}
-                  disabled={page === totalPages}
-                >
-                  Próxima
-                </Button>
-              </div>
+        <CardContent>
+          {isLoadingUsers ? (
+            <div className="space-y-3">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <Skeleton key={index} className="h-10 w-full rounded-md" />
+              ))}
             </div>
+          ) : users.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Nenhum usuário encontrado.
+            </p>
+          ) : (
+            <>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Usuário</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Criado em</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedUsers.map((u) => (
+                      <TableRow key={u.id}>
+                        <TableCell>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-sm font-medium">
+                              {u.name ?? "Sem nome"}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {u.email}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{getActiveBadge(u.is_active)}</TableCell>
+                        <TableCell>{getRoleBadge(u.role)}</TableCell>
+                        <TableCell>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(u.created_at).toLocaleString("pt-BR")}
+                          </span>
+                        </TableCell>
+                        <TableCell className="flex justify-end gap-2">
+                          {!u.is_active && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-emerald-600/70 text-emerald-400 hover:bg-emerald-600/10"
+                              onClick={() => handleApprove(u)}
+                              disabled={isBusy}
+                            >
+                              Aprovar
+                            </Button>
+                          )}
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleToggleRole(u)}
+                            disabled={isBusy}
+                          >
+                            {u.role === "admin" ? "Rebaixar" : "Promover"}
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDelete(u)}
+                            disabled={isBusy}
+                          >
+                            Excluir
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Paginação */}
+              {totalPages > 1 && (
+                <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+                  <span>
+                    Página {page} de {totalPages}
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      disabled={page === 1 || isBusy}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      disabled={page === totalPages || isBusy}
+                      onClick={() =>
+                        setPage((p) => Math.min(totalPages, p + 1))
+                      }
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
 
-      {/* MODAL DE CONFIRMAÇÃO (APROVAR / PROMOVER / EXCLUIR) */}
+      {/* Dialog de confirmação */}
       <AlertDialog
         open={pendingAction !== null}
         onOpenChange={(open) => {
@@ -603,27 +438,35 @@ export default function AdminPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{dialogTexts.title}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {pendingAction?.type === "approve" && "Aprovar usuário"}
+              {pendingAction?.type === "delete" && "Remover usuário"}
+              {pendingAction?.type === "promote" && "Alterar role do usuário"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {dialogTexts.description}
+              {pendingAction?.user && (
+                <>
+                  Ação para o usuário{" "}
+                  <span className="font-semibold">
+                    {pendingAction.user.email}
+                  </span>
+                  .
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={actionLoadingId !== null}>
+            <AlertDialogCancel disabled={globalLoading}>
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
-              disabled={actionLoadingId !== null || !pendingAction}
-              onClick={() => {
-                if (!pendingAction) return;
-                void performAction(pendingAction.type, pendingAction.user);
-              }}
+              onClick={executePendingAction}
+              disabled={globalLoading}
             >
-              {actionLoadingId !== null ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                dialogTexts.confirmLabel
+              {globalLoading && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
+              Confirmar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
