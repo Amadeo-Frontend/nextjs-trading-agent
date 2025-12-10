@@ -3,43 +3,54 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const PUBLIC_ROUTES = ["/", "/login"];
+const PUBLIC_ROUTES = ["/", "/login", "/register"];
+
+type AuthRole = "free" | "premium" | "admin";
+
+type AuthToken = {
+  email?: string;
+  name?: string;
+  role?: AuthRole;
+};
 
 export async function middleware(req: NextRequest) {
-  const token = await getToken({
+  const token = (await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
-  });
+  })) as AuthToken | null;
 
   const { pathname } = req.nextUrl;
 
   const isPublic = PUBLIC_ROUTES.includes(pathname);
   const isProtected =
-    pathname.startsWith("/app") ||
+    pathname.startsWith("/dashboard") ||
     pathname.startsWith("/agente") ||
     pathname.startsWith("/backtest") ||
     pathname.startsWith("/admin");
 
-  // 1) Não logado tentando acessar rota protegida → manda pro login
+  // 1) Não logado em rota protegida → login
   if (!token && isProtected) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // 2) Logado tentando ir pra /login → manda para /app
+  // 2) Logado indo para /login → envia para dashboard/free
   if (token && pathname === "/login") {
-    return NextResponse.redirect(new URL("/app", req.url));
+    return NextResponse.redirect(new URL("/dashboard/free", req.url));
   }
 
-  // 3) Rota admin → só entra se role === "admin"
+  // 3) Admin → apenas role admin
   if (pathname.startsWith("/admin")) {
-    interface TokenWithRole {
-      role?: string;
+    if (!token || token.role !== "admin") {
+      return NextResponse.redirect(new URL("/dashboard/free", req.url));
     }
-    const role = (token as TokenWithRole | null)?.role;
-    if (role !== "admin") {
-      return NextResponse.redirect(new URL("/app", req.url));
+  }
+
+  // 4) Dashboard premium → apenas premium ou admin
+  if (pathname.startsWith("/dashboard/premium")) {
+    if (!token || (token.role !== "premium" && token.role !== "admin")) {
+      return NextResponse.redirect(new URL("/dashboard/free", req.url));
     }
   }
 
@@ -50,7 +61,8 @@ export const config = {
   matcher: [
     "/",
     "/login",
-    "/app/:path*",
+    "/register",
+    "/dashboard/:path*",
     "/agente/:path*",
     "/backtest/:path*",
     "/admin/:path*",

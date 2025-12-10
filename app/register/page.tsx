@@ -23,15 +23,18 @@ export default function RegisterPage() {
     setErrorMsg("");
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          name,
-          password,
-        }),
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email,
+            name,
+            password,
+          }),
+        }
+      );
 
       if (!res.ok) {
         const data = await res.json();
@@ -42,7 +45,7 @@ export default function RegisterPage() {
 
       // Sucesso → redirecionar para login
       router.push("/login?registered=1");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setErrorMsg("Erro de conexão com servidor.");
       console.error(err);
