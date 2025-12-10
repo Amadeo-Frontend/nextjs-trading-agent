@@ -4,31 +4,31 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 
 export default function AppDashboardPage() {
-  const { data, status } = useSession();
+  const { data: session, status } = useSession();
 
   if (status === "loading") {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-[calc(100vh-80px)] items-center justify-center">
         Carregando sessão...
       </div>
     );
   }
 
-  if (!data?.user) {
+  if (!session?.user) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <p>Sem sessão. Tente fazer login novamente.</p>
+      <div className="flex h-[calc(100vh-80px)] items-center justify-center">
+        <p>Sem sessão. Faça login novamente.</p>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col gap-4 p-6">
+    <div className="flex min-h-[calc(100vh-80px)] flex-col gap-4">
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">Dashboard</h1>
           <p className="text-sm text-muted-foreground">
-            Logado como {data.user.email} (role: {data.user.role})
+            Logado como {session.user.email} (role: {session.user.role})
           </p>
         </div>
 
@@ -40,11 +40,11 @@ export default function AppDashboardPage() {
         </button>
       </header>
 
-      <main className="flex flex-col gap-4">
-        <Link href="/agente" className="text-blue-500 underline">
+      <main className="flex flex-col gap-2">
+        <Link href="/agente" className="text-sm text-primary underline">
           Ir para /agente
         </Link>
-        <Link href="/admin" className="text-blue-500 underline">
+        <Link href="/admin" className="text-sm text-primary underline">
           Ir para /admin
         </Link>
       </main>

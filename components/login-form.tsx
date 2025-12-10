@@ -56,59 +56,46 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-black via-zinc-950 to-black px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-zinc-800/80 bg-zinc-950/90 p-6 shadow-[0_20px_70px_rgba(0,0,0,0.9)] backdrop-blur-md">
-        <h1 className="mb-1 text-center text-2xl font-semibold">Login</h1>
-        <p className="mb-6 text-center text-xs text-zinc-400">
-          Acesse o Trading Agent com seu e-mail cadastrado.
-        </p>
+    <div className="flex min-h-[calc(100vh-80px)] items-center justify-center">
+      <div className="w-full max-w-sm rounded-xl border bg-card p-6 shadow-xl">
+        <h1 className="mb-6 text-center text-2xl font-bold">Login</h1>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
-            <label className="mb-1 block text-xs text-zinc-300">Email</label>
+            <label className="mb-1 block text-xs">Email</label>
             <div className="relative">
-              <Mail className="pointer-events-none absolute left-2 top-2 h-4 w-4 text-zinc-500" />
+              <Mail className="absolute left-2 top-2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="seuemail@email.com"
-                className="border-zinc-800 bg-zinc-950/80 pl-8 text-sm"
+                className="pl-8"
                 {...register("email")}
               />
             </div>
             {errors.email && (
-              <p className="mt-1 text-xs text-red-400">
-                {errors.email.message}
-              </p>
+              <p className="text-xs text-red-500">{errors.email.message}</p>
             )}
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-zinc-300">Senha</label>
+            <label className="mb-1 block text-xs">Senha</label>
             <div className="relative">
-              <Lock className="pointer-events-none absolute left-2 top-2 h-4 w-4 text-zinc-500" />
+              <Lock className="absolute left-2 top-2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="password"
                 placeholder="••••••••"
-                className="border-zinc-800 bg-zinc-950/80 pl-8 text-sm"
+                className="pl-8"
                 {...register("password")}
               />
             </div>
             {errors.password && (
-              <p className="mt-1 text-xs text-red-400">
+              <p className="text-xs text-red-500">
                 {errors.password.message}
               </p>
             )}
           </div>
 
-          <Button
-            disabled={loading}
-            type="submit"
-            className="mt-2 w-full rounded-full bg-emerald-500 text-sm font-medium text-black shadow-[0_15px_45px_rgba(16,185,129,0.7)] transition-all hover:bg-emerald-400"
-          >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              "Entrar"
-            )}
+          <Button disabled={loading} type="submit" className="w-full">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Entrar"}
           </Button>
         </form>
       </div>
