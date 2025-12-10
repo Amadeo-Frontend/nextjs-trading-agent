@@ -6,7 +6,7 @@ import type { JWT } from "next-auth/jwt";
 const BACKEND_URL = process.env.BACKEND_URL;
 
 if (!BACKEND_URL) {
-  console.warn("⚠️ BACKEND_URL não definido nas envs");
+  console.warn("⚠ BACKEND_URL não definido");
 }
 
 export const authOptions: NextAuthOptions = {
@@ -25,11 +25,10 @@ export const authOptions: NextAuthOptions = {
       },
 
       async authorize(credentials) {
-        if (!credentials?.email || !credentials.password || !BACKEND_URL) {
+        if (!credentials?.email || !credentials.password) {
           return null;
         }
 
-        // 1) Backend exige esse formato (OAuth2PasswordRequestForm)
         const loginRes = await fetch(`${BACKEND_URL}/auth/login`, {
           method: "POST",
           headers: {
@@ -40,27 +39,22 @@ export const authOptions: NextAuthOptions = {
             username: credentials.email,
             password: credentials.password,
             scope: "",
-            client_id: "",
-            client_secret: "",
           }),
         });
 
         if (!loginRes.ok) {
+          console.log("LOGIN FALHOU", await loginRes.text());
           return null;
         }
 
-        const loginData = (await loginRes.json()) as {
-          access_token: string;
-          token_type: string;
-        };
+        const loginData = await loginRes.json();
 
-        const accessToken = loginData.access_token;
-        if (!accessToken) return null;
+        const token = loginData.access_token;
+        if (!token) return null;
 
-        // 2) Buscar dados do usuário logado
         const meRes = await fetch(`${BACKEND_URL}/auth/me`, {
           headers: {
-            Authorization: `Bearer ${accessToken}`,
+            Authorization: `Bearer ${token}`,
           },
         });
 
@@ -68,20 +62,14 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const user = (await meRes.json()) as {
-          id: number;
-          email: string;
-          name?: string;
-          role: string;
-        };
+        const user = await meRes.json();
 
-        // 3) Retornar para o NextAuth
         const nextAuthUser: NextAuthUser = {
           id: String(user.id),
-          name: user.name,
+          name: user.name ?? "",
           email: user.email,
           role: user.role,
-          accessToken,
+          accessToken: token,
         };
 
         return nextAuthUser;
@@ -101,13 +89,9 @@ export const authOptions: NextAuthOptions = {
     },
 
     async session({ session, token }) {
-      if (session.user) {
-        session.user.id = (token.id as string) ?? "";
-        session.user.role = (token as JWT).role;
-      }
-
+      session.user.id = token.id as string;
+      session.user.role = (token as JWT).role;
       session.accessToken = (token as JWT).accessToken;
-
       return session;
     },
   },
