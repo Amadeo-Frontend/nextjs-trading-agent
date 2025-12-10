@@ -152,3 +152,73 @@
 .premium-dialog {
   @apply border border-white/10 bg-white/10 backdrop-blur-xl shadow-2xl rounded-xl;
 }
+
+/* === ADMIN / HOME PREMIUM UTILITIES =================================== */
+
+/* Cards com blur e hover suave */
+.premium-card {
+  @apply border border-white/10 bg-white/10 backdrop-blur-xl rounded-2xl shadow-xl p-4 transition-all duration-300 hover:bg-white/20 hover:-translate-y-[2px];
+}
+
+.premium-title {
+  @apply text-sm font-medium text-gray-300;
+}
+
+.premium-number {
+  @apply text-3xl font-bold text-white drop-shadow-md;
+}
+
+.premium-table {
+  @apply border border-white/10 bg-white/5 backdrop-blur-xl shadow-xl rounded-2xl;
+}
+
+/* Botões 3D */
+.btn-3d-primary {
+  @apply bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/40 active:translate-y-[1px] active:shadow-md transition-all duration-150;
+}
+
+.btn-3d-secondary {
+  @apply bg-sky-600 hover:bg-sky-500 text-white shadow-lg shadow-sky-900/40 active:translate-y-[1px] active:shadow-md transition-all duration-150;
+}
+
+.btn-3d-outline {
+  @apply border border-white/40 bg-white/5 text-white shadow-lg shadow-black/40 hover:bg-white/10 active:translate-y-[1px] active:shadow-md transition-all duration-150;
+}
+
+.premium-btn-green {
+  @apply bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/40 active:translate-y-[1px] active:shadow-md transition-all;
+}
+
+.premium-btn-red {
+  @apply bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-900/40 active:translate-y-[1px] active:shadow-md transition-all;
+}
+
+.premium-btn-blue {
+  @apply bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-sky-900/40 active:translate-y-[1px] active:shadow-md transition-all;
+}
+
+/* Dialog premium */
+.premium-dialog {
+  @apply border border-white/10 bg-white/10 backdrop-blur-xl shadow-2xl rounded-xl;
+}
+
+/* Card principal (hero) com glass morphism */
+.hero-glass {
+  @apply relative rounded-3xl border border-white/10 bg-white/5 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] px-6 py-7 overflow-hidden;
+}
+
+/* Animação de entrada leve (opcional) */
+@keyframes fade-in-soft {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in-soft 0.35s ease-out;
+}
