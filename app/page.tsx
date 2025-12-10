@@ -66,26 +66,41 @@ export default function LandingPage() {
 
         {/* PLANOS */}
         <section className="relative mt-8 grid gap-4 md:grid-cols-2">
-          <Card className="group border-zinc-800/80 bg-zinc-950/70 backdrop-blur-sm transition-all hover:border-emerald-400/60 hover:bg-zinc-950/90">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <ShieldCheck className="h-4 w-4 text-emerald-400" />
-                Plano Free
-              </CardTitle>
-              <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400">
-                Ideal para começar
-              </span>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-zinc-300">
-              <p>Acesso ao agente de IA para tirar dúvidas do mercado.</p>
-              <ul className="space-y-1 text-xs text-zinc-400">
-                <li>• Acesso ao agente de IA</li>
-                <li>• Respostas em português</li>
-                <li>• Sem backtests automatizados</li>
-              </ul>
-            </CardContent>
-          </Card>
+          {/* PLANO FREE */}
+          <Link href="/register" className="block">
+            <Card className="group cursor-pointer border-zinc-800/80 bg-zinc-950/70 backdrop-blur-sm transition-all hover:border-emerald-400/60 hover:bg-zinc-950/90">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                  Plano Free
+                </CardTitle>
+                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400">
+                  Ideal para começar
+                </span>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-zinc-300">
+                <p>Acesso ao agente de IA para tirar dúvidas do mercado.</p>
+                <ul className="space-y-1 text-xs text-zinc-400">
+                  <li>• Acesso ao agente de IA</li>
+                  <li>• Respostas em português</li>
+                  <li>• Sem backtests automatizados</li>
+                </ul>
 
+                {/* Botão dentro do card */}
+                <div className="pt-4">
+                  <Button
+                    size="sm"
+                    className="rounded-full bg-emerald-500 text-black px-4 py-1 shadow-[0_10px_30px_rgba(16,185,129,0.4)] transition-all group-hover:-translate-y-0.5"
+                  >
+                    Começar grátis
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* PLANO PREMIUM */}
           <Card className="group border-purple-500/60 bg-gradient-to-br from-zinc-950/80 via-zinc-900/90 to-zinc-950/80 shadow-[0_18px_70px_rgba(168,85,247,0.45)] backdrop-blur-md transition-transform hover:-translate-y-1">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
