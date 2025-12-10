@@ -1,40 +1,48 @@
-"use client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Users, Activity, Crown, Cpu } from "lucide-react";
 
-import { useSession } from "next-auth/react";
-
-export default function AdminPage() {
-  const { data: session, status } = useSession();
-
-  if (status === "loading") {
-    return (
-      <div className="flex h-[calc(100vh-80px)] items-center justify-center">
-        Carregando sessão...
-      </div>
-    );
-  }
-
-  if (!session?.user) {
-    return (
-      <div className="flex h-[calc(100vh-80px)] items-center justify-center">
-        <p>Você não está logado.</p>
-      </div>
-    );
-  }
-
-  if (session.user.role !== "admin") {
-    return (
-      <div className="flex h-[calc(100vh-80px)] items-center justify-center">
-        <p>Você não tem permissão para acessar o admin.</p>
-      </div>
-    );
-  }
-
+export default function AdminDashboard() {
   return (
-    <div className="flex h-[calc(100vh-80px)] flex-col items-center justify-center gap-2">
-      <h1 className="text-2xl font-semibold">Área Administrativa</h1>
-      <p className="text-sm text-muted-foreground">
-        Você está logado como admin. (role: {session.user.role})
-      </p>
+    <div className="space-y-6">
+      <h1 className="text-3xl font-semibold">Dashboard</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="text-blue-400" /> Usuários
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-3xl font-bold">—</CardContent>
+        </Card>
+
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Crown className="text-yellow-400" /> Premium
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-3xl font-bold">—</CardContent>
+        </Card>
+
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Cpu className="text-purple-400" /> Backtests
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-3xl font-bold">—</CardContent>
+        </Card>
+
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="text-emerald-400" /> Consultas IA
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-3xl font-bold">—</CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
