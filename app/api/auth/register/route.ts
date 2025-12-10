@@ -1,28 +1,32 @@
-// app/api/auth/register/route.ts
 import { NextResponse } from "next/server";
-import { pool } from "@/lib/db";
+import { pool } from "@/lib/db"; // conexão com NEON
+import { RowDataPacket } from "mysql2";
 
-type RegisterBody = {
+type UserRow = {
+  id: number;
   name: string;
   email: string;
+  role: string;
 };
 
 export async function POST(req: Request) {
   try {
-    const body: RegisterBody = await req.json();
-    const { name, email } = body;
+    const { email, name } = (await req.json()) as {
+      email: string;
+      name: string;
+    };
 
-    if (!email) {
+    if (!email || !name) {
       return NextResponse.json(
-        { message: "Email é obrigatório" },
+        { message: "Email e nome são obrigatórios" },
         { status: 400 }
       );
     }
 
-    // Verifica se usuário já existe
-    const exists = await pool.query("SELECT id FROM users WHERE email = $1", [
-      email,
-    ]);
+    const exists = await pool.query<UserRow[]>(
+      "SELECT id FROM users WHERE email = $1",
+      [email]
+    );
 
     if (exists.rowCount && exists.rowCount > 0) {
       return NextResponse.json(
@@ -31,21 +35,14 @@ export async function POST(req: Request) {
       );
     }
 
-    // Cria usuário com role "free"
     await pool.query(
       "INSERT INTO users (email, name, role) VALUES ($1, $2, $3)",
-      [email, name ?? null, "free"]
+      [email, name, "free"]
     );
 
-    return NextResponse.json(
-      { message: "Usuário registrado com sucesso" },
-      { status: 201 }
-    );
-  } catch (error: unknown) {
-    console.error("Erro interno no registro:", error);
-    return NextResponse.json(
-      { message: "Erro interno do servidor" },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: "Usuário criado" }, { status: 201 });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ message: "Erro interno" }, { status: 500 });
   }
 }

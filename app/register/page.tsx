@@ -2,126 +2,85 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 
 export default function RegisterPage() {
   const router = useRouter();
-
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
+  const [error, setError] = useState("");
 
-  async function handleRegister(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError("");
     setLoading(true);
-    setErrorMsg("");
 
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email,
-            name,
-            password,
-          }),
-        }
-      );
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ email, name }),
+      headers: { "Content-Type": "application/json" },
+    });
 
-      if (!res.ok) {
-        const data = await res.json();
-        setErrorMsg(data.detail || "Erro ao registrar");
-        setLoading(false);
-        return;
-      }
+    const data = await res.json();
 
-      // Sucesso → redirecionar para login
-      router.push("/login?registered=1");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      setErrorMsg("Erro de conexão com servidor.");
-      console.error(err);
+    if (!res.ok) {
+      setError(data.message ?? "Erro inesperado");
       setLoading(false);
+      return;
     }
+
+    router.push("/dashboard/free");
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-center text-xl">Criar Conta</CardTitle>
-        </CardHeader>
+    <div className="flex min-h-screen items-center justify-center bg-black text-white">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-sm space-y-4 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl shadow-xl"
+      >
+        <h1 className="mb-2 text-center text-xl font-semibold">
+          Criar conta grátis
+        </h1>
 
-        <CardContent>
-          <form className="space-y-4" onSubmit={handleRegister}>
-            {/* Campo Nome */}
-            <div className="space-y-1">
-              <Label>Nome</Label>
-              <Input
-                type="text"
-                value={name}
-                placeholder="Seu nome"
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
+        {error && <p className="text-center text-sm text-red-400">{error}</p>}
 
-            {/* Campo Email */}
-            <div className="space-y-1">
-              <Label>E-mail</Label>
-              <Input
-                type="email"
-                value={email}
-                placeholder="seu@email.com"
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
+        <div>
+          <label className="text-sm">Nome</label>
+          <input
+            className="mt-1 w-full rounded-md bg-black/30 p-2 text-sm outline-none border border-white/10"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+        </div>
 
-            {/* Campo Senha */}
-            <div className="space-y-1">
-              <Label>Senha</Label>
-              <Input
-                type="password"
-                value={password}
-                placeholder="••••••••"
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+        <div>
+          <label className="text-sm">E-mail</label>
+          <input
+            type="email"
+            className="mt-1 w-full rounded-md bg-black/30 p-2 text-sm outline-none border border-white/10"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
 
-            {/* Erro */}
-            {errorMsg && (
-              <p className="text-red-500 text-sm text-center">{errorMsg}</p>
-            )}
+        <Button
+          type="submit"
+          disabled={loading}
+          className="w-full rounded-full bg-emerald-500 text-black hover:bg-emerald-400"
+        >
+          {loading ? "Criando..." : "Criar conta"}
+        </Button>
 
-            {/* Botão */}
-            <Button className="w-full" type="submit" disabled={loading}>
-              {loading ? "Registrando..." : "Criar conta"}
-            </Button>
-
-            {/* Link para login */}
-            <p className="text-sm text-center mt-2">
-              Já tem conta?{" "}
-              <Link className="text-blue-500 hover:underline" href="/login">
-                Entrar
-              </Link>
-            </p>
-
-            <p className="text-xs text-center text-muted-foreground mt-1">
-              Sua conta será analisada antes da liberação.
-            </p>
-          </form>
-        </CardContent>
-      </Card>
+        <p className="text-center text-xs text-zinc-400">
+          Já possui conta?{" "}
+          <a href="/login" className="text-emerald-400 hover:underline">
+            Entrar
+          </a>
+        </p>
+      </form>
     </div>
   );
 }

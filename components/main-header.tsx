@@ -6,58 +6,52 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function MainHeader() {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
+
   const role = session?.user?.role ?? "free";
+  const name = session?.user?.name ?? session?.user?.email ?? "";
+  const firstLetter = name.charAt(0).toUpperCase();
+
   const isPremium = role === "premium" || role === "admin";
+
+  const glowColor = isPremium
+    ? "before:bg-gradient-to-r before:from-purple-600/20 before:via-fuchsia-500/10 before:to-purple-400/20"
+    : "before:bg-gradient-to-r before:from-emerald-500/15 before:via-emerald-600/10 before:to-emerald-900/5";
 
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 w-full backdrop-blur-xl transition-all",
-        "bg-black/30 border-b border-white/5 shadow-[0_0_30px_rgba(0,0,0,0.45)]",
-        isPremium
-          ? "before:absolute before:bottom-0 before:left-0 before:right-0 before:h-px before:bg-gradient-to-r before:from-purple-500/60 before:via-fuchsia-400/40 before:to-purple-600/60"
-          : "before:absolute before:bottom-0 before:left-0 before:right-0 before:h-px before:bg-gradient-to-r before:from-emerald-400/50 before:via-emerald-500/30 before:to-emerald-600/50"
+        "sticky top-0 z-50 backdrop-blur-xl border-b border-white/10 bg-black/20 shadow-lg",
+        "before:absolute before:inset-0 before:-z-10 before:opacity-40",
+        glowColor
       )}
     >
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        {/* LOGO */}
-        <Link
-          href="/"
-          className="relative font-semibold tracking-tight text-zinc-200 hover:text-white transition-colors"
-        >
+      <div className="flex items-center justify-between px-4 py-3 max-w-6xl mx-auto">
+        <Link href="/" className="font-semibold">
           Trading Agent
         </Link>
 
-        {/* RIGHT SIDE */}
-        <div className="flex items-center gap-3 text-sm">
-          {status === "authenticated" ? (
-            <>
-              <span className="font-medium text-zinc-300">
-                {session.user.name}
-              </span>
+        {!session?.user ? (
+          <Link href="/login">
+            <Button variant="outline" size="sm">
+              Entrar
+            </Button>
+          </Link>
+        ) : (
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-purple-600/40 text-white flex items-center justify-center font-bold">
+              {firstLetter}
+            </div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-white/20 text-zinc-200 hover:bg-white/10 hover:text-white transition"
-                onClick={() => signOut({ callbackUrl: "/login" })}
-              >
-                Sair
-              </Button>
-            </>
-          ) : (
-            <Link href="/login">
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-white/20 text-zinc-200 hover:bg-white/10 hover:text-white transition"
-              >
-                Entrar
-              </Button>
-            </Link>
-          )}
-        </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+            >
+              Sair
+            </Button>
+          </div>
+        )}
       </div>
     </header>
   );
