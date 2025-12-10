@@ -1,9 +1,10 @@
+// middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const AUTH_ROUTES = ["/login", "/register"];
-const PROTECTED_PREFIXES = ["/agente", "/backtest", "/admin"];
+const PUBLIC_ROUTES = ["/", "/login", "/register"];
+const PROTECTED_PREFIXES = ["/app", "/agente", "/backtest", "/admin"];
 
 export async function middleware(req: NextRequest) {
   const token = await getToken({
@@ -13,28 +14,33 @@ export async function middleware(req: NextRequest) {
 
   const { pathname } = req.nextUrl;
 
-  const isAuthRoute = AUTH_ROUTES.includes(pathname);
-  const isProtectedRoute = PROTECTED_PREFIXES.some((prefix) =>
+  const isPublic = PUBLIC_ROUTES.includes(pathname);
+  const isProtected = PROTECTED_PREFIXES.some((prefix) =>
     pathname.startsWith(prefix)
   );
 
-  // 1) NÃO logado → tentando acessar rota protegida
-  if (!token && isProtectedRoute) {
+  // 1) Usuário NÃO logado tentando acessar rota protegida
+  if (!token && isProtected) {
     const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
+    loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // 2) Logado → tentando acessar login/register
-  if (token && isAuthRoute) {
-    return NextResponse.redirect(new URL("/", req.url));
+  // 2) Usuário logado tentando ir para login/register/landing
+  if (token && isPublic) {
+    return NextResponse.redirect(new URL("/app", req.url));
   }
 
-  // 3) Rota admin → validar role
+  // 3) Rota admin: validar role
   if (pathname.startsWith("/admin")) {
-    const role = (token as { role?: string } | null)?.role;
+    interface TokenWithRole {
+      role?: string;
+    }
+
+    const role = (token as TokenWithRole | null)?.role;
+
     if (role !== "admin") {
-      return NextResponse.redirect(new URL("/", req.url));
+      return NextResponse.redirect(new URL("/app", req.url));
     }
   }
 
@@ -43,8 +49,10 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
+    "/",
     "/login",
     "/register",
+    "/app/:path*",
     "/agente/:path*",
     "/backtest/:path*",
     "/admin/:path*",

@@ -1,204 +1,141 @@
+// app/page.tsx
 import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { ArrowRight, Sparkles, ShieldCheck, Zap, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  MessageCircle,
-  LineChart,
-  Shield,
-  Sparkles,
-  ArrowRight,
-} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function HomePage() {
+export default function LandingPage() {
   return (
-    <main className="min-h-[calc(100vh-4rem)] w-full bg-gradient-to-br from-[#050505] via-[#0b0b0b] to-black text-white">
-      <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-10">
-        {/* HERO */}
-        <section className="hero-glass relative overflow-hidden">
-          {/* brilho de fundo */}
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.06),_transparent_60%)]" />
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-black via-zinc-950 to-black text-zinc-50">
+      {/* glow de fundo */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-32 top-10 h-72 w-72 rounded-full bg-purple-600/30 blur-3xl" />
+        <div className="absolute -right-32 top-40 h-72 w-72 rounded-full bg-emerald-500/25 blur-3xl" />
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black to-transparent" />
+      </div>
 
-          <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 text-xs font-medium text-emerald-300 ring-1 ring-emerald-500/40">
-                <Sparkles className="h-3 w-3 animate-pulse" />
-                Plataforma premium de trading com IA
-              </div>
+      <main className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-10 md:px-8">
+        {/* Hero */}
+        <section className="flex flex-1 flex-col items-center gap-8 text-center md:items-start md:text-left">
+          <div className="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/70 px-4 py-1 text-xs text-zinc-400 backdrop-blur">
+            <Sparkles className="h-4 w-4 text-amber-400" />
+            <span>Backtests em 1 minuto com IA</span>
+          </div>
 
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-                  Trading Agent
-                </h1>
-                <p className="mt-2 max-w-xl text-sm text-gray-300 md:text-base">
-                  Converse com um agente de IA especializado em trading e rode
-                  backtests da técnica de gatilho universal em menos de 1
-                  minuto, direto do navegador.
-                </p>
-              </div>
+          <div className="space-y-4 md:max-w-2xl">
+            <h1 className="text-balance text-4xl font-semibold tracking-tight md:text-5xl lg:text-6xl">
+              Trading Agent{" "}
+              <span className="bg-gradient-to-r from-emerald-400 via-sky-400 to-purple-500 bg-clip-text text-transparent">
+                para traders sérios.
+              </span>
+            </h1>
+            <p className="text-balance text-sm text-zinc-300 md:text-base">
+              Converse com um agente especialista em mercado e rode backtests da
+              sua técnica de gatilho universal em poucos cliques. Sem planilhas,
+              sem dor de cabeça.
+            </p>
+          </div>
 
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  asChild
-                  className="btn-3d-primary inline-flex items-center gap-2"
-                >
-                  <Link href="/agente">
-                    Abrir Agente
-                    <MessageCircle className="h-4 w-4" />
-                  </Link>
-                </Button>
+          <div className="flex flex-col items-center gap-3 md:flex-row">
+            <Button
+              asChild
+              size="lg"
+              className="group relative translate-y-0 transform rounded-full bg-emerald-500 px-6 py-2 text-sm font-medium text-black shadow-[0_15px_40px_rgba(16,185,129,0.5)] transition-all hover:-translate-y-0.5 hover:shadow-[0_25px_60px_rgba(16,185,129,0.55)]"
+            >
+              <Link href="/login">
+                Começar agora
+                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </Button>
 
-                <Button
-                  asChild
-                  variant="outline"
-                  className="btn-3d-secondary inline-flex items-center gap-2"
-                >
-                  <Link href="/backtest">
-                    Rodar Backtests
-                    <LineChart className="h-4 w-4" />
-                  </Link>
-                </Button>
-              </div>
+            <p className="text-xs text-zinc-400">
+              Não precisa inserir cartão para testar o plano gratuito.
+            </p>
+          </div>
+        </section>
+
+        {/* Planos Free vs Premium */}
+        <section className="relative mt-8 grid gap-4 md:grid-cols-2">
+          <Card className="group border-zinc-800/80 bg-zinc-950/70 backdrop-blur-sm transition-all hover:border-emerald-400/60 hover:bg-zinc-950/90">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                Plano Free
+              </CardTitle>
+              <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400">
+                Ideal para começar
+              </span>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-zinc-300">
+              <p>Converse com o agente especialista e teste suas ideias.</p>
+              <ul className="space-y-1 text-xs text-zinc-400">
+                <li>• Acesso ao agente de IA</li>
+                <li>• Respostas em português</li>
+                <li>• Sem backtests automatizados</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card className="group border-purple-500/60 bg-gradient-to-br from-zinc-950/80 via-zinc-900/90 to-zinc-950/80 shadow-[0_18px_70px_rgba(168,85,247,0.45)] backdrop-blur-md transition-transform hover:-translate-y-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Crown className="h-4 w-4 text-amber-400" />
+                Plano Premium
+              </CardTitle>
+              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-300">
+                Em breve
+              </span>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-zinc-200">
+              <p>
+                Tenha acesso ao pacote completo de backtests e métricas em
+                minutos.
+              </p>
+              <ul className="space-y-1 text-xs text-zinc-300">
+                <li>• Todos recursos do plano Free</li>
+                <li>• Backtests automatizados em 1 minuto</li>
+                <li>• Painel com históricos, winrate e métricas chaves</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Benefícios rápidos */}
+        <section className="mt-6 grid gap-4 text-xs text-zinc-300 md:grid-cols-3">
+          <div className="flex items-start gap-2">
+            <Zap className="mt-0.5 h-4 w-4 text-sky-400" />
+            <div>
+              <p className="font-medium text-zinc-100">Rápido</p>
+              <p className="text-zinc-400">Backtests prontos em minutos.</p>
             </div>
-
-            <div className="mt-4 w-full max-w-xs md:mt-0 md:w-auto">
-              <Card className="border-none bg-white/5 backdrop-blur-xl shadow-2xl">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <LineChart className="h-4 w-4 text-emerald-400" />
-                    Visão rápida
-                  </CardTitle>
-                  <CardDescription className="text-xs text-gray-300">
-                    Status do ambiente de trading.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-300">Latência média</span>
-                    <span className="font-semibold text-emerald-400">
-                      &lt; 150ms
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-300">Backtests hoje</span>
-                    <span className="font-semibold">24</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-300">Status IA</span>
-                    <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400">
-                      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                      Online
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
+          </div>
+          <div className="flex items-start gap-2">
+            <ShieldCheck className="mt-0.5 h-4 w-4 text-emerald-400" />
+            <div>
+              <p className="font-medium text-zinc-100">Confiável</p>
+              <p className="text-zinc-400">Fluxo padronizado para evitar erros.</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-2">
+            <Sparkles className="mt-0.5 h-4 w-4 text-purple-400" />
+            <div>
+              <p className="font-medium text-zinc-100">Feito para traders</p>
+              <p className="text-zinc-400">UI pensada para o dia a dia de trade.</p>
             </div>
           </div>
         </section>
 
-        {/* CARDS DE FUNÇÕES */}
-        <section className="grid gap-4 md:grid-cols-3">
-          {/* Agente Especialista */}
-          <Card className="premium-card group">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <div>
-                <CardTitle className="text-sm font-medium">
-                  Agente Especialista
-                </CardTitle>
-                <CardDescription className="text-xs text-gray-300">
-                  Chat com IA focada em mercado.
-                </CardDescription>
-              </div>
-              <div className="rounded-full bg-emerald-500/15 p-2">
-                <MessageCircle className="h-5 w-5 text-emerald-400 group-hover:scale-110 transition-transform" />
-              </div>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              <p className="text-xs text-gray-300">
-                Tire dúvidas sobre estratégia, leitura de fluxo, gestão de
-                risco e muito mais.
-              </p>
-              <Button
-                asChild
-                className="btn-3d-primary mt-1 inline-flex items-center justify-center gap-2 text-xs"
-              >
-                <Link href="/agente">
-                  Abrir agente
-                  <ArrowRight className="h-3 w-3" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Backtests */}
-          <Card className="premium-card group">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <div>
-                <CardTitle className="text-sm font-medium">Backtests</CardTitle>
-                <CardDescription className="text-xs text-gray-300">
-                  Valide sua técnica rapidamente.
-                </CardDescription>
-              </div>
-              <div className="rounded-full bg-sky-500/15 p-2">
-                <LineChart className="h-5 w-5 text-sky-400 group-hover:scale-110 transition-transform" />
-              </div>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              <p className="text-xs text-gray-300">
-                Rode simulações por período em timeframe de 1m e acompanhe os
-                principais indicadores.
-              </p>
-              <Button
-                asChild
-                className="btn-3d-secondary mt-1 inline-flex items-center justify-center gap-2 text-xs"
-              >
-                <Link href="/backtest">
-                  Abrir backtests
-                  <ArrowRight className="h-3 w-3" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Segurança / Admin */}
-          <Card className="premium-card group">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <div>
-                <CardTitle className="text-sm font-medium">
-                  Segurança & Acesso
-                </CardTitle>
-                <CardDescription className="text-xs text-gray-300">
-                  Controle de usuários e permissões.
-                </CardDescription>
-              </div>
-              <div className="rounded-full bg-purple-500/15 p-2">
-                <Shield className="h-5 w-5 text-purple-400 group-hover:scale-110 transition-transform" />
-              </div>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              <p className="text-xs text-gray-300">
-                Painel administrativo para aprovar cadastros, gerenciar roles e
-                acompanhar métricas da plataforma.
-              </p>
-              <Button
-                asChild
-                variant="outline"
-                className="btn-3d-outline mt-1 inline-flex items-center justify-center gap-2 text-xs"
-              >
-                <Link href="/admin">
-                  Abrir painel admin
-                  <ArrowRight className="h-3 w-3" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </section>
-      </div>
-    </main>
+        {/* Footer com link sutil para admin */}
+        <footer className="mt-10 flex items-center justify-between border-t border-zinc-800 pt-4 text-[11px] text-zinc-500">
+          <span>© {new Date().getFullYear()} Trading Agent. Todos os direitos reservados.</span>
+          <Link
+            href="/admin"
+            className="text-[10px] text-zinc-600 hover:text-zinc-300 hover:underline"
+          >
+            área do admin
+          </Link>
+        </footer>
+      </main>
+    </div>
   );
 }
