@@ -1,28 +1,26 @@
-import "next-auth";
-import "next-auth/jwt";
-import type { DefaultSession, DefaultUser } from "next-auth";
-
-// Aqui dizemos ao TS que nosso User/Session/JWT têm id, role e accessToken
+import NextAuth, { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
+  interface User {
+    id: string;
+    role: string;
+    accessToken: string;
+  }
+
   interface Session {
     user: {
       id: string;
-      role?: string;
+      role: string;
     } & DefaultSession["user"];
-    accessToken?: string;
-  }
 
-  interface User extends DefaultUser {
-    role?: string;
-    accessToken?: string;
+    accessToken: string;
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    id?: string;
-    role?: string;
-    accessToken?: string;
+    id: string;
+    role: string;
+    accessToken: string;
   }
 }

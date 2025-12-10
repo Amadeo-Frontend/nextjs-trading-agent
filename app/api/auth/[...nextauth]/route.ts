@@ -11,9 +11,11 @@ if (!BACKEND_URL) {
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
+
   session: {
     strategy: "jwt",
   },
+
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -21,20 +23,25 @@ export const authOptions: NextAuthOptions = {
         email: { label: "E-mail", type: "text" },
         password: { label: "Senha", type: "password" },
       },
+
       async authorize(credentials) {
         if (!credentials?.email || !credentials.password || !BACKEND_URL) {
           return null;
         }
 
-        // 1) /auth/login -> token JWT do backend
+        // 1) Backend exige esse formato (OAuth2PasswordRequestForm)
         const loginRes = await fetch(`${BACKEND_URL}/auth/login`, {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
           },
           body: new URLSearchParams({
+            grant_type: "password",
             username: credentials.email,
             password: credentials.password,
+            scope: "",
+            client_id: "",
+            client_secret: "",
           }),
         });
 
@@ -47,13 +54,13 @@ export const authOptions: NextAuthOptions = {
           token_type: string;
         };
 
-        const token = loginData.access_token;
-        if (!token) return null;
+        const accessToken = loginData.access_token;
+        if (!accessToken) return null;
 
-        // 2) /auth/me -> dados do usuário
+        // 2) Buscar dados do usuário logado
         const meRes = await fetch(`${BACKEND_URL}/auth/me`, {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${accessToken}`,
           },
         });
 
@@ -68,23 +75,22 @@ export const authOptions: NextAuthOptions = {
           role: string;
         };
 
-        // objeto que o NextAuth trata como "User"
+        // 3) Retornar para o NextAuth
         const nextAuthUser: NextAuthUser = {
           id: String(user.id),
           name: user.name,
           email: user.email,
-          // esses campos extras estão tipados no next-auth.d.ts
           role: user.role,
-          accessToken: token,
+          accessToken,
         };
 
         return nextAuthUser;
       },
     }),
   ],
+
   callbacks: {
     async jwt({ token, user }) {
-      // quando loga pela primeira vez, user vem preenchido
       if (user) {
         const u = user as NextAuthUser;
         token.id = u.id;
@@ -93,6 +99,7 @@ export const authOptions: NextAuthOptions = {
       }
       return token;
     },
+
     async session({ session, token }) {
       if (session.user) {
         session.user.id = (token.id as string) ?? "";
@@ -100,9 +107,11 @@ export const authOptions: NextAuthOptions = {
       }
 
       session.accessToken = (token as JWT).accessToken;
+
       return session;
     },
   },
+
   pages: {
     signIn: "/login",
   },

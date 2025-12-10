@@ -1,43 +1,54 @@
+// frontend/components/app-header.tsx
 "use client";
 
-import { useAuth } from "@/lib/use-auth";
+import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { Loader2, LogOut } from "lucide-react";
-import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function AppHeader() {
-  const { user, isLoading, signOut } = useAuth();
+  const { data: session, status } = useSession();
 
-  const handleLogout = async () => {
-    toast.loading("Saindo...");
-    await signOut({ callbackUrl: "/login" });
-  };
+  const isLoading = status === "loading";
+  const user = session?.user;
 
   return (
-    <header className="w-full border-b border-border bg-background/50 backdrop-blur-sm">
+    <header className="w-full border-b border-border bg-background/80 backdrop-blur-sm">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        
-        {/* Logo / título */}
-        <h1 className="text-lg font-semibold tracking-tight">Trading Agent</h1>
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold tracking-tight">
+            Trading Agent
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Painel do usuário
+          </span>
+        </div>
 
-        {/* Área do usuário */}
         <div className="flex items-center gap-3">
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          ) : (
+          {isLoading && (
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-8 w-32" />
+              <Skeleton className="h-8 w-20" />
+            </div>
+          )}
+
+          {!isLoading && user && (
             <>
-              <div className="text-right">
-                <p className="text-sm font-medium">{user?.name ?? user?.email}</p>
-                <p className="text-xs text-muted-foreground">Role: {user?.role}</p>
+              <div className="flex flex-col items-end">
+                <span className="text-sm font-medium">
+                  {user.name || user.email}
+                </span>
+                {user.email && (
+                  <span className="text-xs text-muted-foreground">
+                    {user.email}
+                  </span>
+                )}
               </div>
 
               <Button
-                size="sm"
                 variant="outline"
-                className="gap-1"
-                onClick={handleLogout}
+                size="sm"
+                onClick={() => signOut({ callbackUrl: "/login" })}
               >
-                <LogOut className="h-4 w-4" />
                 Sair
               </Button>
             </>
